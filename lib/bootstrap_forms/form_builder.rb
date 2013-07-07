@@ -13,7 +13,7 @@ module BootstrapForms
       define_method(method_name) do |name, *args|
         @name = name
         @field_options = args.extract_options!
-        
+
         control_group_div do
           label_field + input_div do
             extras { super(name, objectify_options(@field_options)) }
@@ -31,8 +31,10 @@ module BootstrapForms
           if @field_options[:label] == false || @field_options[:label] == ''
             extras { super(name, objectify_options(@field_options)) }
           else
-            html = extras { super(name, objectify_options(@field_options)) + (@field_options[:label].blank? ? @name.to_s.humanize : @field_options[:label]) }
-            label(@name, :caption => html, :class => 'checkbox')
+            html = extras { super(name, objectify_options(@field_options)) << (@field_options[:label].blank? ? @name.to_s.humanize : @field_options[:label]) }
+            options = { :caption => html, :class => 'checkbox' }
+            options[:for] = @field_options[:id] if @field_options.include?(:id)
+            label(@name, options)
           end
         end
       end
@@ -43,17 +45,20 @@ module BootstrapForms
       @field_options = opts
 
       control_group_div do
-        label_field + input_div do
-          values.map do |text, value|
-            # Padrino does not stringify false values
-            options = objectify_options(@field_options).merge(:value => "#{value}")
-            if @field_options[:label] == '' || @field_options[:label] == false
-              extras { radio_button(name, options) + text }
-            else
-              html = extras { radio_button(name, options) + text }
-              label("#{name}_#{value}", :caption => html, :class => 'radio')
-            end
-          end.join('')
+        buttons = values.map do |text, value|
+          # Padrino does not stringify false values
+          html = radio_button(name, objectify_options(@field_options).merge(:value => "#{value}"))
+          html << text
+
+          options = { :caption => html, :class => 'radio' }
+          options[:for] = @field_options.include?(:id) if @field_options[:id]
+          label("#{name}_#{value}", options)
+        end.join('').html_safe
+
+        # This will create a for attribute
+        # a "for" attribute without a cooresponding element is an error
+        label_field << extras do
+          content_tag(:div, buttons, :class => 'controls')
         end
       end
     end
@@ -62,23 +67,23 @@ module BootstrapForms
       @name = attribute
       @field_options = args.extract_options!
 
+      @args = args
+
       control_group_div do
-        label_field + extras do
-          content_tag(:div, :class => 'controls') do
-            records.collect do |record|
-              value = record.send(record_id)
-              element_id = "#{object_model_name}_#{attribute}_#{value}"
+        boxes = records.map do |record|
+          value = record.send(record_id)
+          element_id = "#{object_model_name}_#{attribute}_#{value}"
 
-              options = objectify_options(@field_options).merge(:id => element_id, :value => value)
-              options[:checked] = "checked" if [object.send(attribute)].flatten.include?(value)
+          options = objectify_options(@field_options).merge(:id => element_id, :value => value)
+          options[:checked] = "checked" if [object.send(attribute)].flatten.include?(value)
 
-              checkbox = check_box_tag("#{object_model_name}[#{attribute}][]", options)
-              content_tag(:label, :class => ['checkbox', ('inline' if @field_options[:inline])].compact.join(' ')) do
-                checkbox + content_tag(:span, record.send(record_name))
-              end
-            end.join('')
-          end
-        end
+          checkbox = check_box_tag("#{object_model_name}[#{attribute}][]", options)
+          checkbox << record.send(record_name)
+          content_tag(:label, checkbox, :class => ['checkbox', ('inline' if @field_options[:inline])].compact.join(' '))
+        end.join('').html_safe
+
+        content = label_field << extras { boxes }
+        content_tag(:div, content, :class => 'controls')
       end
     end
 
@@ -88,22 +93,14 @@ module BootstrapForms
       @args = args
 
       control_group_div do
-        label_field + extras do
-          content_tag(:div, :class => 'controls') do
-            records.collect do |record|
-              value = record.send(record_id)
-              element_id = "#{object_model_name}_#{attribute}_#{value}"
+        buttons = records.map do |record|
+          radiobutton = radio_button(attribute, objectify_options(@field_options).reverse_merge(:value => record.send(record_id)))
+          radiobutton << record.send(record_name)
+          content_tag(:label, radiobutton, :class => ['radio', ('inline' if @field_options[:inline])].compact.join(' '))
+        end.join('').html_safe
 
-              options = objectify_options(@field_options).merge(:id => element_id, :value => value)
-              options[:checked] = "checked" if value == object.send(attribute)
-
-              radiobutton = radio_button_tag("#{object_model_name}[#{attribute}]", options)
-              content_tag(:label, :class => ['radio', ('inline' if @field_options[:inline])].compact.join(' ')) do
-                radiobutton + content_tag(:span, record.send(record_name))
-              end
-            end.join('')
-          end
-        end
+        content = label_field << extras { buttons }
+        content_tag(:div, content, :class => 'controls')
       end
     end
 
@@ -113,7 +110,7 @@ module BootstrapForms
       @field_options[:id] ||= field_id(@name)
       @field_options[:label] ||= "#{field_human_name(@name)}: " # conform to Padrino's default
       @field_options[:value] ||= object.send(@name.to_sym)
-      
+
       template.uneditable_input_tag(@name, @field_options)
     end
 
@@ -130,9 +127,8 @@ module BootstrapForms
     end
 
     def actions(&block)
-      content_tag(:div, :class => 'form-actions') do
-        block_given? ? capture_html(&block) : [submit, cancel].join(' ')
-      end
+      content = block_given? ? capture_html(&block) : [submit, cancel].join(' ').html_safe
+      content_tag(:div, content, :class => 'form-actions')
     end
   end
 end

@@ -79,7 +79,7 @@ module BootstrapForms
       end
 
       def extras(&block)
-        [prepend, (capture_html(&block) if block_given?), append, help_inline, error, success, warning, info, help_block].join('')
+        [prepend, (capture_html(&block) if block_given?), append, help_inline, error, success, warning, info, help_block].join('').html_safe
       end
 
       def objectify_options(options)

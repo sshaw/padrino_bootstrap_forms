@@ -16,6 +16,8 @@ RSpec.configure do |config|
   config.include Rack::Test::Methods
 
   config.include Module.new {
+    VALIDATION_STATES = [:error, :success, :warning, :info]
+
     def app
       Padrino.application
     end
@@ -31,8 +33,18 @@ RSpec.configure do |config|
       str.gsub(/\s{2,}|\n/, "")
     end
 
-    def control_group(name, field, options = {})
-      message = options.keys.find { |k| [:error, :success, :warning, :info].include?(k) }
+    def control_group(klasses = nil)
+      klasses = Array(klasses)
+      klasses.unshift "control-group"
+      content_tag(:div, :class => klasses.join(" ")) { yield }
+    end
+    
+    def controls
+      content_tag(:div, :class => "controls") { yield }
+    end
+    
+    def build_control_group(name, field, options = {})
+      message = options.keys.find { |k| VALIDATION_STATES.include?(k) }
       group_css = %w[control-group]
       group_css << message.to_s if message
       label_for = nil
@@ -47,8 +59,8 @@ RSpec.configure do |config|
         label_for = $1
       end
 
-      expected = content_tag(:div, :class => group_css.join(" ")) do
-        label_tag(name.to_s.titleize, :class => "control-label", :for => label_for) << content_tag(:div, :class => "controls") do
+      expected = control_group(message) do
+        label_tag(name.to_s.titleize, :class => "control-label", :for => label_for) << controls do
           css   = []
           nodes = []
 

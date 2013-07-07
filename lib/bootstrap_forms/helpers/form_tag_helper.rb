@@ -79,13 +79,8 @@ module BootstrapForms
       end
 
       def bootstrap_actions(&block)
-        content_tag(:div, :class => 'form-actions') do
-          if block_given?
-            capture_html(&block)
-          else
-            [bootstrap_submit_tag, bootstrap_cancel_tag].join(' ')
-          end
-        end
+        content = block_given? ? capture_html(&block) : [bootstrap_submit_tag, bootstrap_cancel_tag].join(' ').html_safe
+        content_tag(:div, content, :class => 'form-actions')
       end
     end
   end
