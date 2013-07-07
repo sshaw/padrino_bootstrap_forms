@@ -83,9 +83,8 @@ module BootstrapForms
           content_tag(:label, checkbox, :class => ['checkbox', ('inline' if @field_options[:inline])].compact.join(' '))
         end.join('')
 
-        content_tag(:div, :class => 'controls') do
-          label_field << extras { boxes }
-        end
+        content = label_field << extras { boxes }
+        content_tag(:div, content, :class => 'controls')
       end
     end
 
@@ -101,9 +100,8 @@ module BootstrapForms
           content_tag(:label, radiobutton, :class => ['radio', ('inline' if @field_options[:inline])].compact.join(' '))
         end.join('')
 
-        content_tag(:div, :class => 'controls') do
-          label_field << extras { buttons }
-        end
+        content = label_field << extras { buttons }
+        content_tag(:div, content, :class => 'controls')
       end
     end
 
@@ -130,9 +128,8 @@ module BootstrapForms
     end
 
     def actions(&block)
-      content_tag(:div, :class => 'form-actions') do
-        block_given? ? capture_html(&block) : [submit, cancel].join(' ')
-      end
+      content = block_given? ? capture_html(&block) : [submit, cancel].join(' ')
+      content_tag(:div, content, :class => 'form-actions')
     end
   end
 end
