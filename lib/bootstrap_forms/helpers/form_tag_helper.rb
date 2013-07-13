@@ -72,7 +72,7 @@ module BootstrapForms
         content = block_given? ? capture_html(&block) : [bootstrap_submit_tag, bootstrap_cancel_tag].join(' ')
         # TODO: concat_content might (have been) be the answer to the various block problems encountered?
         # Slim doesn't like concat_content!
-        concat_content content_tag(:div, content, :class => 'form-actions')
+        content_tag(:div, content, :class => 'form-actions')
       end
     end
   end
